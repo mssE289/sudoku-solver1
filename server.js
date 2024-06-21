@@ -53,4 +53,43 @@ app.listen(PORT, function () {
   }
 });
 
+app.post('/api/check', (req, res) => {
+  const { puzzle, coordinate, value } = req.body;
+
+  if (!puzzle || !coordinate || !value) {
+    return res.json({ error: 'Required field(s) missing' });
+  }
+
+  if (puzzle.length !== 81) {
+    return res.json({ error: 'Expected puzzle to be 81 characters long' });
+  }
+
+  if (/[^1-9.]/.test(puzzle)) {
+    return res.json({ error: 'Invalid characters in puzzle' });
+  }
+
+  const coordRegex = /^[A-I][1-9]$/;
+  if (!coordRegex.test(coordinate)) {
+    return res.json({ error: 'Invalid coordinate' });
+  }
+
+  if (!/^[1-9]$/.test(value)) {
+    return res.json({ error: 'Invalid value' });
+  }
+
+  const row = coordinate[0].charCodeAt(0) - 'A'.charCodeAt(0);
+  const col = parseInt(coordinate[1]) - 1;
+
+  const conflicts = [];
+  if (!solver.checkRowPlacement(puzzle, row, col, value)) conflicts.push('row');
+  if (!solver.checkColPlacement(puzzle, row, col, value)) conflicts.push('column');
+  if (!solver.checkRegionPlacement(puzzle, row, col, value)) conflicts.push('region');
+
+  if (conflicts.length === 0) {
+    return res.json({ valid: true });
+  }
+
+  res.json({ valid: false, conflict: conflicts });
+});
+
 module.exports = app; // for testing
