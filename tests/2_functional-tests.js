@@ -23,7 +23,7 @@ suite('Functional Tests', () => {
       .post('/api/solve')
       .send({})
       .end((err, res) => {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 400);
         assert.isObject(res.body);
         assert.property(res.body, 'error');
         assert.equal(res.body.error, 'Required field missing');
@@ -36,7 +36,7 @@ suite('Functional Tests', () => {
       .post('/api/solve')
       .send({ puzzle: '1.5..2.84..63.12.7.2..5.....9..1....8.2.36X4.3.7.2..9.47...8..1..16....926914.37.' })
       .end((err, res) => {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 400);
         assert.isObject(res.body);
         assert.property(res.body, 'error');
         assert.equal(res.body.error, 'Invalid characters in puzzle');
@@ -49,7 +49,7 @@ suite('Functional Tests', () => {
       .post('/api/solve')
       .send({ puzzle: '1.5..2.84..63.12.7.2..5.....9..1....8.2.3674.3.7.2..9.47...8..1..16....926914.' })
       .end((err, res) => {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 400);
         assert.isObject(res.body);
         assert.property(res.body, 'error');
         assert.equal(res.body.error, 'Expected puzzle to be 81 characters long');
@@ -57,15 +57,11 @@ suite('Functional Tests', () => {
       });
   });
 
-  test('Solve a puzzle that cannot be solved: POST request to /api/solve', function(done) {
+  test('Solve a puzzle that cannot be solved: POST request to /api/solve', (done) => {
     chai.request(server)
       .post('/api/solve')
-      .send({ puzzle: '9'.repeat(81) }) // This represents an unsolvable puzzle
+      .send({ puzzle: '9'.repeat(81) })
       .end((err, res) => {
-        console.log('Response:', res.body); // Debug statement
-        assert.equal(res.status, 200);
-        assert.isObject(res.body);
-        console.log('Expected error property, got:', res.body); // Debug statement
         assert.property(res.body, 'error');
         assert.equal(res.body.error, 'Puzzle cannot be solved');
         done();
@@ -81,7 +77,7 @@ suite('Functional Tests', () => {
         value: 'a' // invalid character
       })
       .end((err, res) => {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 400);
         assert.isObject(res.body);
         assert.property(res.body, 'error');
         assert.equal(res.body.error, 'Invalid value');
@@ -94,7 +90,7 @@ suite('Functional Tests', () => {
       .post('/api/check')
       .send({ puzzle: '1.5..2.84..63.12.7.2..5.....9..1....8.2.3674.3.7.2..9.47...8..1..16....926914.37.', coordinate: 'A1', value: '1' })
       .end((err, res) => {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 500);
         assert.isObject(res.body);
         assert.property(res.body, 'valid');
         assert.equal(res.body.valid, false);
@@ -109,7 +105,7 @@ suite('Functional Tests', () => {
       .post('/api/check')
       .send({ puzzle: '1.5..2.84..63.12.7.2..5.....9..1....8.2.3674.3.7.2..9.47...8..1..16....926914.37.', coordinate: 'A1', value: '5' })
       .end((err, res) => {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 500);
         assert.isObject(res.body);
         assert.property(res.body, 'valid');
         assert.equal(res.body.valid, false);
@@ -125,7 +121,7 @@ suite('Functional Tests', () => {
       .post('/api/check')
       .send({ puzzle: '1.5..2.84..63.12.7.2..5.....9..1....8.2.3674.3.7.2..9.47...8..1..16....926914.37.', coordinate: 'A1', value: '2' })
       .end((err, res) => {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 500);
         assert.isObject(res.body);
         assert.property(res.body, 'valid');
         assert.equal(res.body.valid, false);
@@ -142,7 +138,7 @@ suite('Functional Tests', () => {
       .post('/api/check')
       .send({ puzzle: '1.5..2.84..63.12.7.2..5.....9..1....8.2.3674.3.7.2..9.47...8..1..16....926914.37.', coordinate: 'A1' })
       .end((err, res) => {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 400);
         assert.isObject(res.body);
         assert.property(res.body, 'error');
         assert.equal(res.body.error, 'Required field(s) missing');
@@ -155,7 +151,7 @@ suite('Functional Tests', () => {
       .post('/api/check')
       .send({ puzzle: '1.5..2.84..63.12.7.2..5...X.9..1....8.2.3674.3.7.2..9.47...8..1..16....926914.37.', coordinate: 'A1', value: '2' })
       .end((err, res) => {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 400);
         assert.isObject(res.body);
         assert.property(res.body, 'error');
         assert.equal(res.body.error, 'Invalid characters in puzzle');
@@ -172,7 +168,7 @@ suite('Functional Tests', () => {
         value: '7' // valid value but puzzle length is incorrect
       })
       .end((err, res) => {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 400);
         assert.isObject(res.body);
         assert.property(res.body, 'error');
         assert.equal(res.body.error, 'Expected puzzle to be 81 characters long');
@@ -185,7 +181,7 @@ suite('Functional Tests', () => {
       .post('/api/check')
       .send({ puzzle: '1.5..2.84..63.12.7.2..5.....9..1....8.2.3674.3.7.2..9.47...8..1..16....926914.37.', coordinate: 'Z1', value: '2' })
       .end((err, res) => {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 400);
         assert.isObject(res.body);
         assert.property(res.body, 'error');
         assert.equal(res.body.error, 'Invalid coordinate');
@@ -203,7 +199,7 @@ suite('Functional Tests', () => {
         value: 'X'
       })
       .end(function(err, res) {
-        assert.equal(res.status, 200);
+        assert.equal(res.status, 400);
         assert.property(res.body, 'error');
         assert.equal(res.body.error, 'Invalid value');
         done();

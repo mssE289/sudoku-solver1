@@ -3,61 +3,73 @@
 const SudokuSolver = require('../controllers/sudoku-solver.js');
 
 module.exports = function (app) {
-  
+
   let solver = new SudokuSolver();
 
   app.route('/api/check')
     .post((req, res) => {
       const { puzzle, coordinate, value } = req.body;
-      const validation = solver.validate(puzzle);
-      if (validation !== true) {
-        return res.status(200).json(validation);
+
+      // Check for missing required fields
+      if (!puzzle || !coordinate || !value) {
+        return res.status(400).json({ error: 'Required field(s) missing' });
       }
 
-      if (!coordinate || !value) {
-        return res.status(200).json({ error: 'Required field(s) missing' });
+      // Check for invalid puzzle length or characters
+      if (puzzle.length !== 81) {
+        return res.status(400).json({ error: 'Expected puzzle to be 81 characters long' });
+      }
+      if (/[^1-9.]/.test(puzzle)) {
+        return res.status(400).json({ error: 'Invalid characters in puzzle' });
       }
 
-      const row = coordinate[0];
-      const column = parseInt(coordinate[1], 10);
-
-      if (!/[A-I]/.test(row) || !/[1-9]/.test(column)) {
-        return res.status(200).json({ error: 'Invalid coordinate' });
+      // Validate coordinate
+      const row = coordinate.charAt(0);
+      const col = coordinate.charAt(1);
+      if (!/[A-I]/.test(row) || !/[1-9]/.test(col)) {
+        return res.status(400).json({ error: 'Invalid coordinate' });
       }
 
+      // Validate value
       if (!/[1-9]/.test(value)) {
-        return res.status(200).json({ error: 'Invalid value' });
+        return res.status(400).json({ error: 'Invalid value' });
       }
 
-      const conflicts = [];
-      if (!solver.checkRowPlacement(puzzle, row, column, value)) {
-        conflicts.push('row');
-      }
-      if (!solver.checkColPlacement(puzzle, row, column, value)) {
-        conflicts.push('column');
-      }
-      if (!solver.checkRegionPlacement(puzzle, row, column, value)) {
-        conflicts.push('region');
-      }
+      // Check placement conflicts
+      const rowIndex = row.charCodeAt(0) - 'A'.charCodeAt(0);
+      const colIndex = col - 1;
+      const conflicts = solver.checkPlacement(puzzle, rowIndex, colIndex, value);
 
-      if (conflicts.length > 0) {
-        return res.status(200).json({ valid: false, conflict: conflicts });
+      if (conflicts.length === 0) {
+        return res.json({ valid: true });
       } else {
-        return res.status(200).json({ valid: true });
+        return res.status(500).json({ valid: false, conflict: conflicts });
       }
     });
-    
+
   app.route('/api/solve')
     .post((req, res) => {
       const { puzzle } = req.body;
+
+      // Check for missing puzzle string
       if (!puzzle) {
-        return res.status(200).json({ error: 'Required field missing' });
+        return res.status(400).json({ error: 'Required field missing' });
       }
 
-      const result = solver.solve(puzzle);
-      if (!result.error) {
-        console.error('Unexpected result:', result); // Debug statement
+      // Check for invalid puzzle length or characters
+      if (puzzle.length !== 81) {
+        return res.status(400).json({ error: 'Expected puzzle to be 81 characters long' });
       }
-      return res.status(200).json(result);
+      if (/[^1-9.]/.test(puzzle)) {
+        return res.status(400).json({ error: 'Invalid characters in puzzle' });
+      }
+
+      // Solve puzzle
+      const result = solver.solve(puzzle);
+      if (result.error) {
+        return res.status(200).json(result);
+      } else {
+        return res.status(200).json({ solution: result.solution });
+      }
     });
 };

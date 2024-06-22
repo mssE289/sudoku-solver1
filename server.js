@@ -1,46 +1,47 @@
 require('dotenv').config();
-const express     = require('express');
-const bodyParser  = require('body-parser');
-const expect      = require('chai').expect;
-const cors        = require('cors');
+const express = require('express');
+const bodyParser = require('body-parser');
+const expect = require('chai').expect;
+const cors = require('cors');
+const SudokuSolver = require('./controllers/sudoku-solver');
 
-const fccTestingRoutes  = require('./routes/fcctesting.js');
-const apiRoutes         = require('./routes/api.js');
-const runner            = require('./test-runner');
+const fccTestingRoutes = require('./routes/fcctesting.js');
+const apiRoutes = require('./routes/api.js');
+const runner = require('./test-runner');
 
 const app = express();
+const solver = new SudokuSolver();
 
 app.use('/public', express.static(process.cwd() + '/public'));
-app.use(cors({origin: '*'})); //For FCC testing purposes only
+app.use(cors({ origin: '*' })); // For FCC testing purposes only
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-//Index page (static HTML)
+// Index page (static HTML)
 app.route('/')
   .get(function (req, res) {
     res.sendFile(process.cwd() + '/views/index.html');
   });
 
-//For FCC testing purposes
+// For FCC testing purposes
 fccTestingRoutes(app);
 
 // User routes
 apiRoutes(app);
-    
-//404 Not Found Middleware
-app.use(function(req, res, next) {
+
+// 404 Not Found Middleware
+app.use(function (req, res, next) {
   res.status(404)
     .type('text')
     .send('Not Found');
 });
 
-//Start our server and tests!
-const PORT = process.env.PORT || 3000
+// Start our server and tests!
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, function () {
   console.log("Listening on port " + PORT);
-  // process.env.NODE_ENV='test'
-  if (process.env.NODE_ENV==='test') {
+  if (process.env.NODE_ENV === 'test') {
     console.log('Running Tests...');
     setTimeout(function () {
       try {
@@ -77,19 +78,34 @@ app.post('/api/check', (req, res) => {
     return res.json({ error: 'Invalid value' });
   }
 
-  const row = coordinate[0].charCodeAt(0) - 'A'.charCodeAt(0);
-  const col = parseInt(coordinate[1]) - 1;
+  const row = coordinate[0].charCodeAt(0) - 65;
+  const col = parseInt(coordinate[1], 10) - 1;
 
-  const conflicts = [];
-  if (!solver.checkRowPlacement(puzzle, row, col, value)) conflicts.push('row');
-  if (!solver.checkColPlacement(puzzle, row, col, value)) conflicts.push('column');
-  if (!solver.checkRegionPlacement(puzzle, row, col, value)) conflicts.push('region');
+  const conflicts = solver.checkPlacement(puzzle, row, col, value);
 
   if (conflicts.length === 0) {
     return res.json({ valid: true });
   }
 
   res.json({ valid: false, conflict: conflicts });
+});
+
+app.post('/api/solve', (req, res) => {
+  const { puzzle } = req.body;
+  if (!puzzle) {
+    return res.json({ error: 'Required field missing' });
+  }
+
+  if (puzzle.length !== 81) {
+    return res.json({ error: 'Expected puzzle to be 81 characters long' });
+  }
+
+  if (/[^1-9.]/.test(puzzle)) {
+    return res.json({ error: 'Invalid characters in puzzle' });
+  }
+
+  const solution = solver.solve(puzzle);
+  res.json(solution);
 });
 
 module.exports = app; // for testing
